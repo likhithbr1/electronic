@@ -1,89 +1,64 @@
-#define GAS_SENSOR A0
-#define BUZZER     7
-#define RELAY      6
+/*******************************************************
+ *  Simple Alcohol Detection:
+ *  - Reads MQ-3 sensor on analog pin A0.
+ *  - If reading > threshold => Alcohol detected:
+ *       Motor OFF (via Relay), Buzzer ON
+ *  - Else => No alcohol:
+ *       Motor ON (via Relay), Buzzer OFF
+ *******************************************************/
 
-int alc = 0; // Will store the digital reading from the sensor
+#define GAS_SENSOR A0    // MQ-3 analog output
+#define RELAY_PIN  6     // Relay controlling DC motor
+#define BUZZER_PIN 7     // Buzzer pin
+
+// Adjust this threshold to your specific MQ-3 readings.
+int alcoholThreshold = 300;
 
 void setup() {
   Serial.begin(9600);
-  pinMode(GAS_SENSOR, INPUT);
-  pinMode(RELAY, OUTPUT);
-  pinMode(BUZZER, OUTPUT);
+  
+  pinMode(GAS_SENSOR, INPUT);  // Analog pin for MQ-3
+  pinMode(RELAY_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
 
-  // Initial states
-  digitalWrite(RELAY, HIGH);   // Relay HIGH (motor off if your relay is active-low)
-  digitalWrite(BUZZER, LOW);   // Buzzer off
+  // Initial States (assuming an ACTIVE-LOW relay).
+  //   - Motor OFF => digitalWrite(RELAY_PIN, HIGH);
+  //   - Motor ON  => digitalWrite(RELAY_PIN, LOW);
+  // If your relay is ACTIVE-HIGH, you need to invert these signals.
+  digitalWrite(RELAY_PIN, LOW);  // Start with motor ON
+  digitalWrite(BUZZER_PIN, LOW); // Buzzer OFF
 
   Serial.println("Alcohol Detection System Initialized");
   delay(2000);
 }
 
 void loop() {
-  // Read the sensor as a digital input
-  alc = digitalRead(GAS_SENSOR);
+  // 1) Read MQ-3 sensor value (0-1023)
+  int sensorValue = analogRead(GAS_SENSOR);
 
-  if (alc == HIGH) {
-    // No alcohol detected
-    digitalWrite(BUZZER, LOW);   // Buzzer off
-    digitalWrite(RELAY, LOW);    // Relay low (motor on if active-low relay)
-    Serial.println("No Alcohol Detected -> Motor ON");
-    
-  } else {
-    // Alcohol detected
-    digitalWrite(BUZZER, HIGH);  // Buzzer on
-    digitalWrite(RELAY, HIGH);   // Relay high (motor off if active-low relay)
-    Serial.println("ALCOHOL DETECTED -> Motor OFF");
-  }
-
-  delay(1000); // Small delay between readings
-}
-
-
-#define MQ3_PIN    A0   // MQ-3 sensor analog output
-#define RELAY_PIN  6
-#define BUZZER_PIN 7
-
-// Adjust this threshold to match the typical reading that indicates "alcohol detected."
-// Higher threshold => sensor needs a higher voltage to decide "alcohol is present."
-int threshold = 400;  
-
-void setup() {
-  Serial.begin(9600);
-
-  pinMode(MQ3_PIN, INPUT);       // Reading analog sensor
-  pinMode(RELAY_PIN, OUTPUT);
-  pinMode(BUZZER_PIN, OUTPUT);
-
-  // Initial states: turn motor OFF (relay not energized) and buzzer OFF.
-  // If your relay is active HIGH, swap these two lines (HIGH <-> LOW).
-  digitalWrite(RELAY_PIN, HIGH); 
-  digitalWrite(BUZZER_PIN, LOW);
-
-  Serial.println("MQ-3 Alcohol Detection System Initialized");
-  delay(3000);
-}
-
-void loop() {
-  // 1) Read from MQ3 sensor
-  int sensorValue = analogRead(MQ3_PIN);
-
-  // 2) Print sensor value for debugging
-  Serial.print("MQ-3 reading: ");
+  // 2) Debug output
+  Serial.print("Alcohol Sensor Value: ");
   Serial.println(sensorValue);
 
   // 3) Compare against threshold
-  if (sensorValue > threshold) {
-    // Alcohol detected
-    digitalWrite(RELAY_PIN, HIGH);  // Motor OFF if relay is active LOW
-    digitalWrite(BUZZER_PIN, HIGH); // Buzzer ON
+  if (sensorValue > alcoholThreshold) {
+    // ALCOHOL DETECTED
+    // Motor OFF (if relay is active LOW)
+    digitalWrite(RELAY_PIN, HIGH);
+    // Buzzer ON
+    digitalWrite(BUZZER_PIN, HIGH);
+
     Serial.println("ALCOHOL DETECTED -> Motor OFF, Buzzer ON");
-  }
-  else {
-    // No alcohol
-    digitalWrite(RELAY_PIN, LOW);   // Motor ON if relay is active LOW
-    digitalWrite(BUZZER_PIN, LOW);  // Buzzer OFF
+  } else {
+    // NO ALCOHOL
+    // Motor ON (if relay is active LOW)
+    digitalWrite(RELAY_PIN, LOW);
+    // Buzzer OFF
+    digitalWrite(BUZZER_PIN, LOW);
+
     Serial.println("No Alcohol -> Motor ON, Buzzer OFF");
   }
 
-  delay(1000); // 1 second delay between reads
+  delay(1000); // Wait 1 second before next read
 }
+
